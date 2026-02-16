@@ -6,7 +6,7 @@ class Game:
 
     def __init__(self, 
                  size: tuple[int, int] = (500, 500),
-                 title: str = "Tiny Engine",
+                 title: str = "Comblue Engine",
                  background: str|tuple[int, int, int]|pygame.Surface = "black",
                  first_scene: list[Entity] = [],
                  FPS: int|float = 60,
