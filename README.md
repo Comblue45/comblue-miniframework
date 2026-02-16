@@ -84,6 +84,9 @@ Audio.play_background(-1)
 game.start()
 ```
 
+## Instalation
+To install the engine use `git clone https://github.com/Comblue45/comblue-engine.git`. You can also download it as a .zip, extract it and move it into your project folder.
+
 ## Notes
 -Make sure to have pygame installed
 -This is an very early version (v1.0) I made in 2 days which will definetly improve in the future
