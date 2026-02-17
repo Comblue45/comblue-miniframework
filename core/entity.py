@@ -1,4 +1,5 @@
 import pygame
+from .Input import Keys, Mouse
 
 class Entity:
     """Base class for every entity in the game."""
@@ -41,7 +42,7 @@ class Entity:
     
     def is_clicked(self) -> None:
         """Checks if the entity is clicked with the mouse."""
-        if self.physics.collidepoint(pygame.mouse.get_pos()) and self.game.mouse_input[0]:
+        if self.physics.collidepoint(pygame.mouse.get_pos()) and self.game.input_down[Mouse.left]:
             return True
         else:
             return False

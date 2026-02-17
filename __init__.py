@@ -1,4 +1,4 @@
-from .core import Game, Entity
+from .core import Game, Entity, Keys, Mouse
 from .audio import Sound, Audio
 from .graphics import ImageLoader
 from .gui import Label, Button
@@ -9,4 +9,6 @@ __all__ = ["Game",
            "Audio",
            "ImageLoader",
            "Label",
-           "Button"]
+           "Button",
+           "Keys",
+           "Mouse"]

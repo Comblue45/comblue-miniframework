@@ -1,5 +1,6 @@
 import pygame
 from .entity import Entity
+from .Input import PYGAME_TO_KEYS, Mouse
 
 class Game:
     """Class which handels the game loop."""
@@ -48,9 +49,13 @@ class Game:
         self.debug_frames_to_update = int(debug_frames_to_update)
         self.running = False
         self.current_scene = first_scene
-        self.keys: pygame.key.ScancodeWrapper
-        self.keys_just_pressd = {}
-        self.mouse_input = ()
+
+        self._keys: dict[str, bool] = {k: False for k in PYGAME_TO_KEYS.values()}
+        self._keys_pressed: dict[str, bool] = {k: False for k in PYGAME_TO_KEYS.values()}
+        self._mouse: dict[str, bool] = {Mouse.left: False, Mouse.right: False, Mouse.middle: False}
+        self._mouse_pressed: dict[str, bool] = {Mouse.left: False, Mouse.right: False, Mouse.middle: False}
+        self.input_down = {**self._keys, **self._mouse}
+        self.input_pressed = {**self._keys_pressed, **self._mouse_pressed}
 
         pygame.init()
         self.screen = pygame.display.set_mode(self.size)
@@ -80,19 +85,38 @@ class Game:
 
     def input(self) -> None:
         """Gets current user input and makes it possible to use for everything in the engine."""
-        self.keys = pygame.key.get_pressed()
-        self.mouse_input = pygame.mouse.get_pressed()
+        pressed = pygame.key.get_pressed()
+        mouse_pressed = pygame.mouse.get_pressed()
 
-        for key in self.keys_just_pressd:
-            self.keys_just_pressd[key] = False
+        for pygame_key, keys_key in PYGAME_TO_KEYS.items():
+            self._keys[keys_key] = pressed[pygame_key]
+        
+        for i, mouse_key in enumerate([Mouse.left, Mouse.middle, Mouse.right]):
+            self._mouse[mouse_key] = mouse_pressed[i]
+        
+        for key in self._keys_pressed.keys():
+            self._keys_pressed[key] = False
+        for key in self._mouse_pressed.keys():
+            self._mouse_pressed[key] = False
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-
+            
             if event.type == pygame.KEYDOWN:
-                if event.key in self.keys_just_pressd:
-                    self.keys_just_pressd[event.key] = True
+                if event.key in PYGAME_TO_KEYS.keys():
+                    self._keys_pressed[PYGAME_TO_KEYS[event.key]] = True
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self._mouse_pressed[Mouse.left] = True
+                elif event.button == 2:
+                    self._mouse_pressed[Mouse.middle] = True
+                elif event.button == 3:
+                    self._mouse_pressed[Mouse.right] = True
+        
+        self.input_down = {**self._keys, **self._mouse}
+        self.input_pressed = {**self._keys_pressed, **self._mouse_pressed}
     
     def update(self) -> None:
         """Updates every entity in the game."""
@@ -135,7 +159,3 @@ class Game:
             raise TypeError("all elements of entitys must be of type Entity")
         self.current_scene = new_scene
         self.init_scene()
-
-    def register_just_pressed_key(self, key) -> None:
-        """Appends a key to the keys_just_pressd dict so it can be checked for a just-pressed event every frame."""
-        self.keys_just_pressd[key] = False
