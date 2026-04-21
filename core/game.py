@@ -1,6 +1,7 @@
 import pygame
-from .entity import Entity
-from .Input import PYGAME_TO_KEYS, Mouse
+from .Input import PYGAME_TO_KEYS, Mouse, Keys
+from collections.abc import Callable
+from .Entity import *
 
 class Game:
     """Class which handels the game loop."""
@@ -9,7 +10,8 @@ class Game:
                  size: tuple[int, int] = (500, 500),
                  title: str = "Comblue Engine",
                  background: str|tuple[int, int, int]|pygame.Surface = "black",
-                 first_scene: list[Entity] = [],
+                 first_scene: list[dict[str, object]] = [],
+                 tasks: list[Callable] = [],
                  FPS: int|float = 60,
                  debug_mode: bool = False,
                  debug_frames_to_update: int|float = 1) -> None:
@@ -32,7 +34,7 @@ class Game:
                 raise TypeError("background must be of type str, tuple or pygame.Surface")
         if not isinstance(first_scene, list):
             raise TypeError("first_scene must be of type list")
-        if not all(isinstance(entity, Entity) for entity in first_scene):
+        if not all(isinstance(entity, dict) for entity in first_scene):
             raise TypeError("all elements of first_scene must be of type Entity")
         if not isinstance(FPS, (int, float)):
             raise TypeError("FPS must be of type int or float")
@@ -49,6 +51,8 @@ class Game:
         self.debug_frames_to_update = int(debug_frames_to_update)
         self.running = False
         self.current_scene = first_scene
+        self.tasks = tasks
+        self.chace = {}
 
         self._keys: dict[str, bool] = {k: False for k in PYGAME_TO_KEYS.values()}
         self._keys_pressed: dict[str, bool] = {k: False for k in PYGAME_TO_KEYS.values()}
@@ -69,7 +73,7 @@ class Game:
     def start(self) -> None:
         """Starts the game by starting the game loop."""
         self.running = True
-        self.init_scene()
+        # self.init_scene()
 
         while self.running:
             self.input()
@@ -120,8 +124,8 @@ class Game:
     
     def update(self) -> None:
         """Updates every entity in the game."""
-        for entity in self.current_scene:
-            entity.update()
+        for task in self.tasks:
+            task()
 
     def debug_systems(self) -> None:
         """Updates every debug system."""
@@ -136,7 +140,10 @@ class Game:
             self.screen.fill(self.background)
         
         for entity in self.current_scene:
-            self.screen.blit(entity.surface, entity.physics)
+            if "sprite" in entity.keys():
+                pos = (entity["transform"].position.x, entity["transform"].position.y) if entity["parent"] == None else (entity["parent"]["transform"].position.x - entity["transform"].position.x * -1 ,
+                                                                                                                             entity["parent"]["transform"].position.y - entity["transform"].position.y * -1)
+                self.screen.blit(self.chace[entity["sprite"].id], pos)
 
     def render(self) -> None:
         """Updates the display."""
@@ -145,17 +152,24 @@ class Game:
     def time(self) -> None:
         """Makes sure that movment can stay independent by mutlipling with delta time."""
         self.dt = self.clock.tick(self.FPS) / 1000
-
-    def init_scene(self) -> None:
-        """Initialises the current scene."""
-        for entity in self.current_scene:
-            entity.ready()
     
-    def change_scene(self, new_scene: list[Entity]) -> None:
+    def change_scene(self, new_scene: list[dict[str, object]]) -> None:
         """Changes the scene and inits it."""
         if not isinstance(new_scene, list):
             raise TypeError("entitys must be of type list")
-        if not all(isinstance(entity, Entity) for entity in new_scene):
-            raise TypeError("all elements of entitys must be of type Entity")
+        if not all(isinstance(entity, dict) for entity in new_scene):
+            raise TypeError("all entitys must be of type dict")
+        # if not all(isinstance(key, str) for entity in new_scene for key in entity.keys())
         self.current_scene = new_scene
         self.init_scene()
+
+    def is_colliding(self, entity1, entity2) -> bool:
+        self.chace[entity1["box"].id].topleft = (entity1["transform"].position.x, entity1["transform"].position.y)
+        self.chace[entity2["box"].id].topleft = (entity2["transform"].position.x, entity2["transform"].position.y)
+        if self.chace[entity1["box"].id].colliderect(self.chace[entity2["box"].id]):
+            return True
+        return False
+
+if __name__ == "__main__":
+    game = Game()
+    game.start()
