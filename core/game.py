@@ -2,6 +2,7 @@ import pygame
 from .Input import PYGAME_TO_KEYS, Mouse, Keys
 from collections.abc import Callable
 from .Entity import *
+from ..api import EntityKeys
 
 class Game:
     """Class which handels the game loop."""
@@ -73,7 +74,6 @@ class Game:
     def start(self) -> None:
         """Starts the game by starting the game loop."""
         self.running = True
-        # self.init_scene()
 
         while self.running:
             self.input()
@@ -140,10 +140,10 @@ class Game:
             self.screen.fill(self.background)
         
         for entity in self.current_scene:
-            if "sprite" in entity.keys():
-                pos = (entity["transform"].position.x, entity["transform"].position.y) if entity["parent"] == None else (entity["parent"]["transform"].position.x - entity["transform"].position.x * -1 ,
-                                                                                                                             entity["parent"]["transform"].position.y - entity["transform"].position.y * -1)
-                self.screen.blit(self.chace[entity["sprite"].id], pos)
+            if EntityKeys.SPRITE in entity.keys():
+                pos = (entity[EntityKeys.TRANSFORM].position.x, entity[EntityKeys.TRANSFORM].position.y) if entity[EntityKeys.PARENT] == None else (entity[EntityKeys.PARENT][EntityKeys.TRANSFORM].position.x - entity[EntityKeys.TRANSFORM].position.x * -1 ,
+                                                                                                                             entity[EntityKeys.PARENT][EntityKeys.TRANSFORM].position.y - entity[EntityKeys.TRANSFORM].position.y * -1)
+                self.screen.blit(self.chace[entity[EntityKeys.SPRITE].id], pos)
 
     def render(self) -> None:
         """Updates the display."""
@@ -159,17 +159,18 @@ class Game:
             raise TypeError("entitys must be of type list")
         if not all(isinstance(entity, dict) for entity in new_scene):
             raise TypeError("all entitys must be of type dict")
-        # if not all(isinstance(key, str) for entity in new_scene for key in entity.keys())
         self.current_scene = new_scene
         self.init_scene()
 
     def is_colliding(self, entity1, entity2) -> bool:
-        self.chace[entity1["box"].id].topleft = (entity1["transform"].position.x, entity1["transform"].position.y)
-        self.chace[entity2["box"].id].topleft = (entity2["transform"].position.x, entity2["transform"].position.y)
-        if self.chace[entity1["box"].id].colliderect(self.chace[entity2["box"].id]):
+        self.chace[entity1[EntityKeys.BOX].id].topleft = self.get_entity_relativ_pos(entity1)
+        self.chace[entity2[EntityKeys.BOX].id].topleft = self.get_entity_relativ_pos(entity2)
+        print(self.chace[entity1[EntityKeys.BOX].id].topleft)
+        print(self.chace[entity2[EntityKeys.BOX].id].topleft)
+        if self.chace[entity1[EntityKeys.BOX].id].colliderect(self.chace[entity2[EntityKeys.BOX].id]):
             return True
         return False
-
-if __name__ == "__main__":
-    game = Game()
-    game.start()
+    
+    def get_entity_relativ_pos(self, entity) -> tuple:
+        return (entity[EntityKeys.TRANSFORM].position.x, entity[EntityKeys.TRANSFORM].position.y) if entity[EntityKeys.PARENT] == None else (entity[EntityKeys.PARENT][EntityKeys.TRANSFORM].position.x - entity[EntityKeys.TRANSFORM].position.x * -1 ,
+                                                                                                                             entity[EntityKeys.PARENT][EntityKeys.TRANSFORM].position.y - entity[EntityKeys.TRANSFORM].position.y * -1)
