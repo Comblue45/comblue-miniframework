@@ -160,7 +160,6 @@ class Game:
         if not all(isinstance(entity, dict) for entity in new_scene):
             raise TypeError("all entitys must be of type dict")
         self.current_scene = new_scene
-        self.init_scene()
 
     def is_colliding(self, entity1, entity2) -> bool:
         self.chace[entity1[EntityKeys.BOX].id].topleft = self.get_entity_relativ_pos(entity1)
