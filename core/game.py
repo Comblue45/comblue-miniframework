@@ -10,9 +10,8 @@ class Game:
     def __init__(self, 
                  size: tuple[int, int] = (500, 500),
                  title: str = "Comblue Engine",
-                 background: str|tuple[int, int, int]|pygame.Surface = "black",
-                 first_scene: list[dict[str, object]] = [],
-                 tasks: list[Callable] = [],
+                 first_scene: list[dict[str, object]] = None,
+                 tasks: list[Callable] = None,
                  FPS: int|float = 60,
                  debug_mode: bool = False,
                  debug_frames_to_update: int|float = 1) -> None:
@@ -25,16 +24,11 @@ class Game:
             raise ValueError("size must be 2 elements long")
         if not isinstance(title, str):
             raise TypeError("title must be of type str")
-        if not isinstance(background, (str, pygame.Surface)):
-            if isinstance(background, tuple):
-                if not all(isinstance(element, int) for element in background):
-                    raise TypeError("all elements of background as a tuple must be of type int")
-                if not len(background) == 3:
-                    raise ValueError("background as a tuple must be 3 elements long")
-            else:
-                raise TypeError("background must be of type str, tuple or pygame.Surface")
-        if not isinstance(first_scene, list):
-            raise TypeError("first_scene must be of type list")
+        if first_scene:
+            if not isinstance(first_scene, list):
+                raise TypeError("first_scene must be of type list")
+        else:
+            first_scene = []
         if not all(isinstance(entity, dict) for entity in first_scene):
             raise TypeError("all elements of first_scene must be of type Entity")
         if not isinstance(FPS, (int, float)):
@@ -46,14 +40,13 @@ class Game:
         
         self.size = size
         self.title = title
-        self.background = background
         self.FPS = int(FPS)
         self.debug_mode = debug_mode
         self.debug_frames_to_update = int(debug_frames_to_update)
         self.running = False
         self.current_scene = first_scene
-        self.tasks = tasks
-        self.chace = {}
+        self.tasks = tasks if tasks else []
+        self.cache = {}
 
         self._keys: dict[str, bool] = {k: False for k in PYGAME_TO_KEYS.values()}
         self._keys_pressed: dict[str, bool] = {k: False for k in PYGAME_TO_KEYS.values()}
@@ -69,7 +62,7 @@ class Game:
         self.dt = 0.0
         self.engine_font = pygame.font.Font(None, size=25)
         self._frame_since_last_debug = 0
-        self.debug_overlay_entitys = {(self.size[0] - 75, 10): lambda: self.engine_font.render(f"FPS: {int(self.clock.get_fps())}", False, (255, 255, 255))}
+        self.debug_overlay_entities = {(self.size[0] - 75, 10): lambda: self.engine_font.render(f"FPS: {int(self.clock.get_fps())}", False, (255, 255, 255))}
 
     def start(self) -> None:
         """Starts the game by starting the game loop."""
@@ -129,28 +122,24 @@ class Game:
 
     def debug_systems(self) -> None:
         """Updates every debug system."""
-        for pos in self.debug_overlay_entitys.keys():
-            self.screen.blit(self.debug_overlay_entitys[pos](), pos)
+        for pos in self.debug_overlay_entities.keys():
+            self.screen.blit(self.debug_overlay_entities[pos](), pos)
 
     def update_render_data(self) -> None:
-        """Prepares the screen for updating so every entity is updated."""
-        if isinstance(self.background, (pygame.Surface)):
-            self.screen.blit(self.background, (0, 0))
-        else:
-            self.screen.fill(self.background)
+        self.screen.fill("black")
         
         for entity in self.current_scene:
             if EntityKeys.SPRITE in entity.keys():
                 pos = (entity[EntityKeys.TRANSFORM].position.x, entity[EntityKeys.TRANSFORM].position.y) if entity[EntityKeys.PARENT] == None else (entity[EntityKeys.PARENT][EntityKeys.TRANSFORM].position.x - entity[EntityKeys.TRANSFORM].position.x * -1 ,
                                                                                                                              entity[EntityKeys.PARENT][EntityKeys.TRANSFORM].position.y - entity[EntityKeys.TRANSFORM].position.y * -1)
-                self.screen.blit(self.chace[entity[EntityKeys.SPRITE].id], pos)
+                self.screen.blit(self.cache[entity[EntityKeys.SPRITE].id], pos)
 
     def render(self) -> None:
         """Updates the display."""
         pygame.display.flip()
 
     def time(self) -> None:
-        """Makes sure that movment can stay independent by mutlipling with delta time."""
+        """Makes sure that movment can stay independent over mutliple frames by mutlipling with delta time."""
         self.dt = self.clock.tick(self.FPS) / 1000
     
     def change_scene(self, new_scene: list[dict[str, object]]) -> None:
@@ -162,11 +151,9 @@ class Game:
         self.current_scene = new_scene
 
     def is_colliding(self, entity1, entity2) -> bool:
-        self.chace[entity1[EntityKeys.BOX].id].topleft = self.get_entity_relativ_pos(entity1)
-        self.chace[entity2[EntityKeys.BOX].id].topleft = self.get_entity_relativ_pos(entity2)
-        print(self.chace[entity1[EntityKeys.BOX].id].topleft)
-        print(self.chace[entity2[EntityKeys.BOX].id].topleft)
-        if self.chace[entity1[EntityKeys.BOX].id].colliderect(self.chace[entity2[EntityKeys.BOX].id]):
+        self.cache[entity1[EntityKeys.BOX].id].topleft = self.get_entity_relativ_pos(entity1)
+        self.cache[entity2[EntityKeys.BOX].id].topleft = self.get_entity_relativ_pos(entity2)
+        if self.cache[entity1[EntityKeys.BOX].id].colliderect(self.cache[entity2[EntityKeys.BOX].id]):
             return True
         return False
     
